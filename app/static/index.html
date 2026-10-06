@@ -18,8 +18,8 @@ code{background:rgba(127,127,127,.2);padding:1px 5px;border-radius:4px}.err{colo
 <h1>Git<span>Context</span></h1>
 <p class="sub">Ask questions about the indexed repository. Answers cite their sources.</p>
 <div class="row"><input id="q" placeholder="How does Flask match a URL to a view function?" autofocus>
-<select id="mode"><option value="rerank">rerank</option><option value="hybrid">hybrid</option>
-<option value="bm25">bm25</option><option value="vector">vector</option></select>
+<select id="mode"><option value="vector">vector</option><option value="hybrid">hybrid</option>
+<option value="bm25">bm25</option><option value="rerank">rerank (slow)</option></select>
 <button id="go">Ask</button></div>
 <div id="out"></div>
 <script>

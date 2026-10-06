@@ -48,8 +48,42 @@ def run_mode(mode: str, questions: list[dict], k: int, retrieve_fn) -> dict:
         flags = [is_relevant(c, q) for c in results]
         first = flags.index(True) + 1 if True in flags else None
         rows.append({"hit1": bool(flags[:1] and flags[0]), "hit": any(flags),
-                     "rr": 1 / first if first else 0.0, "prec": sum(flags) / k, "ms": ms})
-    return compute_metrics(rows)
+                     "rr": 1 / first if first else 0.0, "prec": sum(flags) / k, "ms": ms,
+                     "q": q["q"], "type": q.get("type", "other")})
+    return compute_metrics(rows), rows
+
+
+def breakdown(detail: dict, k: int) -> list[str]:
+    """Markdown: Recall@k per question type, plus questions where modes disagree or all miss."""
+    modes = list(detail)
+    first = detail[modes[0]]
+    sep = "|---|---|" + "---|" * len(modes)
+    out = ["", f"## Recall@{k} by question type", "",
+           "| Type | n | " + " | ".join(modes) + " |", sep]
+    for t in sorted({r["type"] for r in first}):
+        cells = []
+        for m in modes:
+            rs = [r for r in detail[m] if r["type"] == t]
+            cells.append(f"{sum(r['hit'] for r in rs) / len(rs):.0%}")
+        n = sum(1 for r in first if r["type"] == t)
+        out.append(f"| {t} | {n} | " + " | ".join(cells) + " |")
+    out += ["", "## Where modes disagree or all miss", "",
+            "| Question | " + " | ".join(modes) + " |", "|---|" + "---|" * len(modes)]
+    for i, row in enumerate(first):
+        marks = [detail[m][i]["hit"] for m in modes]
+        if len(set(marks)) > 1 or not any(marks):
+            out.append(f"| {row['q']} | " + " | ".join("yes" if x else "NO" for x in marks) + " |")
+    return out
+
+
+def misses_report(valid: list[dict], detail: dict, retrieve_fn, mode: str) -> list[str]:
+    """Error analysis: what did `mode` actually return for the questions it missed?"""
+    out = ["", f"## Top-3 results on `{mode}` misses", ""]
+    for q, row in zip(valid, detail[mode]):
+        if not row["hit"]:
+            top = retrieve_fn(q["q"], 3, mode)
+            out.append(f"- **{q['q']}** -> " + "; ".join(f"{c['path']} ({c['name']})" for c in top))
+    return out
 
 
 def run_answers(n: int, valid: list[dict], refusals: list[dict], retrieve_fn) -> dict:
@@ -57,12 +91,12 @@ def run_answers(n: int, valid: list[dict], refusals: list[dict], retrieve_fn) ->
     sample = valid[::max(1, len(valid) // n)][:n]
     good = refused = 0
     for q in sample:
-        res = answer(q["q"], 5, "rerank", retrieve_fn=retrieve_fn)
+        res = answer(q["q"], 5, "vector", retrieve_fn=retrieve_fn)
         cited_ok = any(is_relevant(res["sources"][i - 1], q) for i in res["cited"])
         good += bool(cited_ok and not res["invalid_citations"])
         time.sleep(6)  # stay under free-tier rate limits
     for q in refusals:
-        res = answer(q["q"], 5, "rerank", retrieve_fn=retrieve_fn)
+        res = answer(q["q"], 5, "vector", retrieve_fn=retrieve_fn)
         refused += res["answer"].strip().startswith(NO_ANSWER[:12])
         time.sleep(6)
     return {"n": len(sample), "citation_accuracy": good / len(sample),
@@ -90,14 +124,17 @@ def main() -> None:
     k = args.k
     lines = [f"| Mode | Recall@1 | Recall@{k} | MRR | Precision@{k} | p50 latency | p95 latency |",
              "|---|---|---|---|---|---|---|"]
+    detail: dict = {}
     for mode in MODES:
         print(f"Evaluating {mode}...")
-        m = run_mode(mode, valid, k, retrieve_fn)
+        m, detail[mode] = run_mode(mode, valid, k, retrieve_fn)
         lines.append(f"| {mode} | {m['recall_1']:.0%} | {m['recall_k']:.0%} | {m['mrr']:.2f} | "
                      f"{m['precision_k']:.0%} | {m['p50_ms']:.0f} ms | {m['p95_ms']:.0f} ms |")
     out = [f"# Evaluation results ({date.today()})", "",
            f"{len(valid)} labelled questions on the indexed repo, k={k}, rerank pool={args.pool}. "
            "Latency is retrieval only (no LLM), on a laptop CPU.", ""] + lines
+    out += breakdown(detail, k)
+    out += misses_report(valid, detail, retrieve_fn, "vector")
     if args.answers:
         print("Testing LLM answers (slow)...")
         a = run_answers(args.answers, valid, refusals, retrieve_fn)

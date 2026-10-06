@@ -62,7 +62,7 @@ def llm_complete(system: str, user: str) -> str:
     return resp.choices[0].message.content.strip()
 
 
-def answer(question: str, k: int = 5, mode: str = "rerank",
+def answer(question: str, k: int = 5, mode: str = "vector",
            retrieve_fn=None, complete_fn=None) -> dict:
     """Retrieve context, ask the LLM, and return answer + sources + timings.
     retrieve_fn / complete_fn can be swapped out (used by tests)."""

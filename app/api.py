@@ -17,7 +17,7 @@ _lock = threading.Lock()  # local Qdrant + models handle one retrieval at a time
 class Query(BaseModel):
     question: str = Field(min_length=3, max_length=500)
     k: int = Field(5, ge=1, le=10)
-    mode: Literal["vector", "bm25", "hybrid", "rerank"] = "rerank"
+    mode: Literal["vector", "bm25", "hybrid", "rerank"] = "vector"
 
 
 def _locked_retrieve(question: str, k: int, mode: str) -> list[dict]:

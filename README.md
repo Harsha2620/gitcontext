@@ -32,10 +32,10 @@ Endpoints: `POST /ask`, `POST /search`, `GET /health`. Models load once at start
 ## Retrieval modes
 | Mode | What it does | Best for |
 |------|--------------|----------|
-| `vector` | embedding similarity | natural-language questions |
+| `vector` (default) | embedding similarity | natural-language questions, identifiers |
 | `bm25` | keyword match (code-aware tokenizer) | exact function names, error text |
 | `hybrid` | vector + BM25 merged with Reciprocal Rank Fusion | general use |
-| `rerank` (default) | hybrid, then cross-encoder re-sorts top 30 | highest quality |
+| `rerank` | hybrid, then cross-encoder re-sorts top 30 | slowest; no overall gain in our benchmark |
 
 ## Grounded answers
 - The LLM may only use the retrieved sources and must cite them as `[1]`, `[2]`...
@@ -64,4 +64,24 @@ against every retrieval mode and writes `eval/results.md`. A result is correct w
 matches the expected function/class name or file path. Add `--answers 10` to also measure citation
 accuracy and refusal on out-of-scope questions.
 
-**Results (Flask):** _paste the table from `eval/results.md` here_
+**Results** (Flask repo, 43 labelled questions, k=5, laptop CPU, retrieval only, rerank pool 15):
+
+| Mode | Recall@1 | Recall@5 | MRR | Precision@5 | p50 latency | p95 latency |
+|---|---|---|---|---|---|---|
+| vector | 67% | 86% | 0.75 | 32% | 65 ms | 76 ms |
+| bm25 | 37% | 77% | 0.53 | 24% | 4 ms | 5 ms |
+| hybrid | 60% | 84% | 0.69 | 32% | 31 ms | 84 ms |
+| rerank | 60% | 86% | 0.70 | 32% | 1253 ms | 1410 ms |
+
+Recall@5 by question type (vector / bm25 / hybrid / rerank): natural (25) 92 / 80 / 88 / 88%,
+identifiers (10) 100 / 90 / 100 / 100%, docs how-to (8) 50 / 50 / 50 / 62%.
+
+**Findings**
+- Dense retrieval alone matched or beat hybrid and reranking on this benchmark, at a fraction of the latency,
+  so it is the default. Hybrid and rerank remain selectable.
+- BM25 alone is the weakest (it misses paraphrased questions) but is near-instant.
+- The general-purpose MS MARCO cross-encoder added ~1.2 s per query with no overall accuracy gain.
+- Documentation how-to questions are the weak spot (50-62%): the top results are often source code rather than the docs page.
+
+**Limitations:** 43 questions (one question = 2.3 points), labels written by me before running the evaluation,
+latency varies between runs on a laptop. Commit-history and error-message queries are not covered yet.

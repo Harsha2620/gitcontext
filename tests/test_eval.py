@@ -19,3 +19,12 @@ def test_compute_metrics():
     assert m["recall_k"] == pytest.approx(2 / 3)
     assert m["mrr"] == pytest.approx(0.5)
     assert m["p50_ms"] == 20
+
+
+def test_breakdown_by_type_and_disagreements():
+    from eval.run_eval import breakdown
+    d = {"vector": [{"q": "a", "type": "natural", "hit": True}, {"q": "b", "type": "docs", "hit": False}],
+         "bm25": [{"q": "a", "type": "natural", "hit": False}, {"q": "b", "type": "docs", "hit": False}]}
+    text = "\n".join(breakdown(d, 5))
+    assert "| natural | 1 | 100% | 0% |" in text
+    assert "| a | yes | NO |" in text and "| b | NO | NO |" in text

@@ -4,7 +4,7 @@ Modes:
   vector  - meaning-based search only (phase 4)
   bm25    - keyword search only (great for exact function names / error text)
   hybrid  - vector + bm25 merged with Reciprocal Rank Fusion
-  rerank  - hybrid, then a cross-encoder re-sorts the best candidates (best quality)
+  rerank  - hybrid, then a cross-encoder re-sorts the best candidates (slowest)
 """
 import json
 import re
@@ -75,7 +75,7 @@ def rerank(question: str, candidates: list[dict]) -> list[dict]:
     return [{**c, "score": float(s)} for c, s in ranked]
 
 
-def retrieve(question: str, k: int = 5, mode: str = "rerank", pool: int = 30) -> list[dict]:
+def retrieve(question: str, k: int = 5, mode: str = "vector", pool: int = 30) -> list[dict]:
     from app.indexing import search as vector_search
     if mode == "vector":
         return vector_search(question, k)
