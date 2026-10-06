@@ -1,4 +1,6 @@
 sentence-transformers>=3.0
 qdrant-client>=1.10
 rank-bm25>=0.2.2
+openai>=1.40
+python-dotenv>=1.0
 pytest>=8.0
