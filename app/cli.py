@@ -82,7 +82,12 @@ def main() -> None:
     c.add_argument("--mode", choices=modes, default="rerank")
     c.set_defaults(func=cmd_ask)
     args = p.parse_args()
-    args.func(args)
+    try:
+        args.func(args)
+    finally:
+        idx = sys.modules.get("app.indexing")
+        if idx:
+            idx.close_client()
 
 
 if __name__ == "__main__":

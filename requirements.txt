@@ -3,4 +3,6 @@ qdrant-client>=1.10
 rank-bm25>=0.2.2
 openai>=1.40
 python-dotenv>=1.0
+fastapi>=0.110
+uvicorn>=0.29
 pytest>=8.0

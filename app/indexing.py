@@ -20,8 +20,22 @@ def _get_model() -> SentenceTransformer:
     return _model
 
 
+_client_obj = None
+
+
 def _client() -> QdrantClient:
-    return QdrantClient(path=QDRANT_PATH)  # local folder, no Docker needed
+    """One shared connection (local folder, no Docker needed)."""
+    global _client_obj
+    if _client_obj is None:
+        _client_obj = QdrantClient(path=QDRANT_PATH)
+    return _client_obj
+
+
+def close_client() -> None:
+    global _client_obj
+    if _client_obj is not None:
+        _client_obj.close()
+        _client_obj = None
 
 
 def build_index(chunks: list[Chunk], repo_name: str, batch: int = 64) -> None:
@@ -46,7 +60,6 @@ def build_index(chunks: list[Chunk], repo_name: str, batch: int = 64) -> None:
         ]
         client.upsert(COLLECTION, points)
         print(f"  indexed {min(i + batch, len(chunks))}/{len(chunks)}")
-    client.close()
     dump_chunks()  # save a copy for keyword search
 
 
@@ -61,7 +74,6 @@ def dump_chunks() -> list[dict]:
         chunks.extend({"id": str(p.id), **p.payload} for p in points)
         if offset is None:
             break
-    client.close()
     CHUNKS_PATH.parent.mkdir(parents=True, exist_ok=True)
     CHUNKS_PATH.write_text(json.dumps(chunks, ensure_ascii=False), encoding="utf-8")
     return chunks
@@ -73,5 +85,4 @@ def search(question: str, k: int = 5) -> list[dict]:
     vec = _get_model().encode(QUERY_PREFIX + question, normalize_embeddings=True)
     hits = client.query_points(COLLECTION, query=vec.tolist(), limit=k).points
     results = [{"id": str(h.id), "score": h.score, **h.payload} for h in hits]
-    client.close()
     return results

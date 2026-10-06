@@ -2,7 +2,7 @@
 
 **Ask questions about any GitHub repository.** GitContext indexes source code, docs and commit history, retrieves the best context with hybrid search (semantic + keyword) and cross-encoder reranking, then answers with an LLM that **cites its sources**.
 
-> Status: phases 1-6 done. API/UI, freshness (re-indexing) and evaluation are next.
+> Status: phases 1-7 done. Freshness (re-indexing) and evaluation are next.
 
 ## Quick start
 ```bash
@@ -14,6 +14,13 @@ python -m app.cli index https://github.com/pallets/flask
 python -m app.cli ask "How does Flask match a URL to a view function?"
 pytest
 ```
+
+## Web UI + API
+```bash
+python -m uvicorn app.api:app --port 8000   # stop it (Ctrl+C) before re-indexing
+```
+Open http://localhost:8000 for the UI, or http://localhost:8000/docs for the API.
+Endpoints: `POST /ask`, `POST /search`, `GET /health`. Models load once at startup, so queries are fast.
 
 ## Commands
 | Command | What it does |
@@ -47,6 +54,6 @@ pytest
 - [x] Ingestion, chunking, embeddings, vector search
 - [x] BM25 + hybrid retrieval (RRF) + reranking
 - [x] LLM answers with citations
-- [ ] FastAPI backend + UI
+- [x] FastAPI backend + web UI
 - [ ] Auto re-index changed files
 - [ ] Evaluation (Recall@5, latency) and results table
