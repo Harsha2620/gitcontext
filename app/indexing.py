@@ -1,4 +1,5 @@
 """Phase 4: turn chunks into embeddings and store/search them in Qdrant."""
+import json
 import uuid
 
 from qdrant_client import QdrantClient
@@ -6,7 +7,8 @@ from qdrant_client.models import Distance, PointStruct, VectorParams
 from sentence_transformers import SentenceTransformer
 
 from app.chunking import Chunk
-from app.config import COLLECTION, EMBED_DIM, EMBED_MODEL, QDRANT_PATH, QUERY_PREFIX
+from app.config import (CHUNKS_PATH, COLLECTION, EMBED_DIM, EMBED_MODEL,
+                        QDRANT_PATH, QUERY_PREFIX)
 
 _model = None
 
@@ -45,12 +47,31 @@ def build_index(chunks: list[Chunk], repo_name: str, batch: int = 64) -> None:
         client.upsert(COLLECTION, points)
         print(f"  indexed {min(i + batch, len(chunks))}/{len(chunks)}")
     client.close()
+    dump_chunks()  # save a copy for keyword search
+
+
+def dump_chunks() -> list[dict]:
+    """Read every chunk back from Qdrant and save it to data/chunks.json."""
+    client = _client()
+    chunks, offset = [], None
+    while True:
+        points, offset = client.scroll(
+            COLLECTION, limit=500, offset=offset, with_payload=True, with_vectors=False
+        )
+        chunks.extend({"id": str(p.id), **p.payload} for p in points)
+        if offset is None:
+            break
+    client.close()
+    CHUNKS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    CHUNKS_PATH.write_text(json.dumps(chunks, ensure_ascii=False), encoding="utf-8")
+    return chunks
 
 
 def search(question: str, k: int = 5) -> list[dict]:
+    """Vector (meaning-based) search."""
     client = _client()
     vec = _get_model().encode(QUERY_PREFIX + question, normalize_embeddings=True)
     hits = client.query_points(COLLECTION, query=vec.tolist(), limit=k).points
-    results = [{"score": h.score, **h.payload} for h in hits]
+    results = [{"id": str(h.id), "score": h.score, **h.payload} for h in hits]
     client.close()
     return results
