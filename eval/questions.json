@@ -126,7 +126,11 @@
   "q": "How does the test client simulate requests?",
   "type": "natural",
   "paths": [
-   "src/flask/testing.py"
+   "src/flask/testing.py",
+   "docs/testing.rst"
+  ],
+  "names": [
+   "test_client"
   ]
  },
  {
@@ -305,7 +309,11 @@
   "q": "How do I configure logging in Flask?",
   "type": "docs",
   "paths": [
-   "docs/logging.rst"
+   "docs/logging.rst",
+   "src/flask/logging.py"
+  ],
+  "names": [
+   "create_logger"
   ]
  },
  {

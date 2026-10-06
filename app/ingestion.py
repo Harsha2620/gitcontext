@@ -9,6 +9,13 @@ CODE_EXT = {".py"}
 DOC_EXT = {".md", ".rst", ".txt"}
 SKIP_DIRS = {".git", "node_modules", "venv", ".venv", "__pycache__", "dist", "build"}
 MAX_FILE_BYTES = 200_000
+NOISE_DIRS = {"tests", "test", "examples"}  # skipped by default: they crowd out real answers
+NOISE_FILES = {"docs/conf.py"}              # Sphinx config, not documentation
+
+
+def is_noise(rel_path: str) -> bool:
+    parts = rel_path.split("/")
+    return rel_path in NOISE_FILES or any(p in NOISE_DIRS for p in parts[:-1])
 
 
 @dataclass
@@ -50,7 +57,7 @@ def clone_repo(url: str) -> Path:
     return dest
 
 
-def iter_source_files(repo: Path):
+def iter_source_files(repo: Path, include_noise: bool = False):
     """Yield every code/doc file with its last commit info."""
     for p in sorted(repo.rglob("*")):
         if not p.is_file() or any(part in SKIP_DIRS for part in p.parts):
@@ -59,6 +66,8 @@ def iter_source_files(repo: Path):
         if ext not in CODE_EXT | DOC_EXT or p.stat().st_size > MAX_FILE_BYTES:
             continue
         rel = p.relative_to(repo).as_posix()
+        if not include_noise and is_noise(rel):
+            continue
         info = _git(repo, "log", "-1", "--format=%H|%an|%aI", "--", rel)
         sha, author, date = (info.split("|") + ["", "", ""])[:3]
         text = p.read_text(encoding="utf-8", errors="ignore")

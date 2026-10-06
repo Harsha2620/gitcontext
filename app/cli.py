@@ -19,7 +19,7 @@ def cmd_index(args) -> None:
     repo = clone_repo(args.url)
     chunks = []
     print("Reading and chunking files...")
-    for f in iter_source_files(repo):
+    for f in iter_source_files(repo, include_noise=args.include_tests):
         chunks.extend(chunk_source_file(f))
     print("Reading commit history...")
     chunks.extend(chunk_commit(c) for c in get_commits(repo, args.max_commits))
@@ -69,6 +69,7 @@ def main() -> None:
     a = sub.add_parser("index")
     a.add_argument("url")
     a.add_argument("--max-commits", type=int, default=300)
+    a.add_argument("--include-tests", action="store_true", help="also index tests/ and examples/")
     a.set_defaults(func=cmd_index)
     modes = ["vector", "bm25", "hybrid", "rerank"]
     b = sub.add_parser("search")

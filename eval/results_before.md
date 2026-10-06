@@ -4,10 +4,10 @@
 
 | Mode | Recall@1 | Recall@5 | MRR | Precision@5 | p50 latency | p95 latency |
 |---|---|---|---|---|---|---|
-| vector | 70% | 91% | 0.78 | 33% | 23 ms | 35 ms |
-| bm25 | 40% | 79% | 0.55 | 25% | 1 ms | 2 ms |
-| hybrid | 63% | 88% | 0.72 | 33% | 25 ms | 34 ms |
-| rerank | 65% | 91% | 0.75 | 33% | 1251 ms | 1290 ms |
+| vector | 70% | 91% | 0.78 | 33% | 22 ms | 29 ms |
+| bm25 | 40% | 79% | 0.55 | 25% | 1 ms | 3 ms |
+| hybrid | 63% | 88% | 0.72 | 33% | 22 ms | 28 ms |
+| rerank | 65% | 91% | 0.75 | 33% | 900 ms | 944 ms |
 
 ## Recall@5 by question type
 

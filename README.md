@@ -1,87 +1,83 @@
 # GitContext
 
-**Ask questions about any GitHub repository.** GitContext indexes source code, docs and commit history, retrieves the best context with hybrid search (semantic + keyword) and cross-encoder reranking, then answers with an LLM that **cites its sources**.
+**Ask questions about any GitHub repository and get answers that cite their sources.**
+GitContext indexes source code, docs and commit history, retrieves the most relevant pieces with semantic search
+(optionally hybrid BM25 + cross-encoder reranking), and answers with an LLM that may only use the retrieved sources.
 
-> Status: phases 1-8 done. Freshness (re-indexing) and evaluation are next.
+## Architecture
+```mermaid
+flowchart LR
+  A[GitHub repo: code, docs, commits] --> B[Ingest: git clone + log]
+  B --> C[Chunk: AST functions/classes, docs by heading]
+  C --> D[Embed: bge-small, local]
+  D --> E[(Qdrant)]
+  C --> F[BM25 index]
+  Q[Question] --> G{Retrieve}
+  E --> G
+  F --> G
+  G -->|vector default, hybrid RRF, or rerank| H[Top-k sources]
+  H --> I[LLM answer with citations, refuses if unsure]
+  I --> J[FastAPI + web UI]
+```
+
+## Features
+- **Code-aware chunking**: Python split by function/class using the AST; docs split by heading
+- **Metadata** on every chunk: file path, lines, author, commit, last-modified date
+- **4 retrieval modes**: `vector`, `bm25`, `hybrid` (Reciprocal Rank Fusion), `rerank` (cross-encoder)
+- **Grounded answers**: numbered `[n]` citations, validated against the retrieved sources; replies "I don't know" when the sources do not contain the answer
+- **FastAPI backend + web UI**, CLI, tests and CI
+- **Evaluation harness** with labelled questions (Recall@k, MRR, latency, error analysis)
 
 ## Quick start
 ```bash
 python -m venv .venv
-.venv\Scripts\Activate.ps1       # Mac/Linux: source .venv/bin/activate
+.venv\Scripts\Activate.ps1            # Mac/Linux: source .venv/bin/activate
 pip install -r requirements.txt
-copy .env.example .env           # then paste your free Groq key into .env
+copy .env.example .env                # add a free key (Groq or Google Gemini) to .env
 python -m app.cli index https://github.com/pallets/flask
 python -m app.cli ask "How does Flask match a URL to a view function?"
+python -m uvicorn app.api:app --port 8000   # web UI at http://localhost:8000
+python -m eval.run_eval --pool 15           # stop the server first
 pytest
 ```
-
-## Web UI + API
-```bash
-python -m uvicorn app.api:app --port 8000   # stop it (Ctrl+C) before re-indexing
-```
-Open http://localhost:8000 for the UI, or http://localhost:8000/docs for the API.
-Endpoints: `POST /ask`, `POST /search`, `GET /health`. Models load once at startup, so queries are fast.
-
-## Commands
-| Command | What it does |
-|---------|--------------|
-| `index <repo-url>` | clone, chunk, embed and store a repo |
-| `search "<q>" --mode vector\|bm25\|hybrid\|rerank` | retrieval only (see modes below) |
-| `ask "<q>"` | retrieval + LLM answer with `[n]` citations |
-
-## Retrieval modes
-| Mode | What it does | Best for |
-|------|--------------|----------|
-| `vector` (default) | embedding similarity | natural-language questions, identifiers |
-| `bm25` | keyword match (code-aware tokenizer) | exact function names, error text |
-| `hybrid` | vector + BM25 merged with Reciprocal Rank Fusion | general use |
-| `rerank` | hybrid, then cross-encoder re-sorts top 30 | slowest; no overall gain in our benchmark |
-
-## Grounded answers
-- The LLM may only use the retrieved sources and must cite them as `[1]`, `[2]`...
-- If the sources do not contain the answer it replies "I don't know based on the indexed repository."
-- Citations are validated: references to non-existent sources are flagged.
-- Works with any OpenAI-compatible API (Groq free tier by default, set in `.env`).
-
-## How it works
-1. **Ingest**: clone repo, read `.py`/`.md` files + git history
-2. **Chunk**: split Python by function/class (AST), docs by heading
-3. **Embed**: `bge-small-en-v1.5` (local, free) stored in Qdrant with metadata
-4. **Retrieve**: vector + BM25 -> RRF fusion -> cross-encoder rerank
-5. **Answer**: LLM answers from numbered sources with citations
-
-## Roadmap
-- [x] Ingestion, chunking, embeddings, vector search
-- [x] BM25 + hybrid retrieval (RRF) + reranking
-- [x] LLM answers with citations
-- [x] FastAPI backend + web UI
-- [ ] Auto re-index changed files
-- [x] Evaluation (Recall@5, MRR, latency) -> see below
+The LLM client works with any OpenAI-compatible API; configure `LLM_API_KEY`, `LLM_BASE_URL` and `LLM_MODEL` in `.env`.
 
 ## Evaluation
-`python -m eval.run_eval` runs ~44 labelled questions (natural language, exact identifiers, docs)
-against every retrieval mode and writes `eval/results.md`. A result is correct when a retrieved chunk
-matches the expected function/class name or file path. Add `--answers 10` to also measure citation
-accuracy and refusal on out-of-scope questions.
+`python -m eval.run_eval` runs 43 labelled questions (natural language, exact identifiers, docs how-to) against every retrieval mode.
+A result counts as correct when a retrieved chunk matches the expected function/class name or file path.
 
-**Results** (Flask repo, 43 labelled questions, k=5, laptop CPU, retrieval only, rerank pool 15):
+Flask repo, k=5, retrieval only, laptop CPU, rerank pool of 15:
 
 | Mode | Recall@1 | Recall@5 | MRR | Precision@5 | p50 latency | p95 latency |
 |---|---|---|---|---|---|---|
-| vector | 67% | 86% | 0.75 | 32% | 65 ms | 76 ms |
-| bm25 | 37% | 77% | 0.53 | 24% | 4 ms | 5 ms |
-| hybrid | 60% | 84% | 0.69 | 32% | 31 ms | 84 ms |
-| rerank | 60% | 86% | 0.70 | 32% | 1253 ms | 1410 ms |
+| **vector (default)** | 70% | **91%** | **0.78** | 33% | 23 ms | 35 ms |
+| bm25 | 40% | 79% | 0.55 | 25% | 1 ms | 2 ms |
+| hybrid | 63% | 88% | 0.72 | 33% | 25 ms | 34 ms |
+| rerank | 65% | **91%** | 0.75 | 33% | 1251 ms | 1290 ms |
 
-Recall@5 by question type (vector / bm25 / hybrid / rerank): natural (25) 92 / 80 / 88 / 88%,
-identifiers (10) 100 / 90 / 100 / 100%, docs how-to (8) 50 / 50 / 50 / 62%.
+Recall@5 by question type (vector / bm25 / hybrid / rerank):
+natural (25): 96 / 80 / 92 / 92%, identifiers (10): 100 / 90 / 100 / 100%, docs how-to (8): 62 / 62 / 62 / 75%.
 
 **Findings**
-- Dense retrieval alone matched or beat hybrid and reranking on this benchmark, at a fraction of the latency,
-  so it is the default. Hybrid and rerank remain selectable.
-- BM25 alone is the weakest (it misses paraphrased questions) but is near-instant.
-- The general-purpose MS MARCO cross-encoder added ~1.2 s per query with no overall accuracy gain.
-- Documentation how-to questions are the weak spot (50-62%): the top results are often source code rather than the docs page.
+- Dense retrieval matched the cross-encoder on Recall@5 and had the best MRR at over 50x lower latency, so it is the default.
+- BM25 alone is the weakest mode; hybrid did not beat dense retrieval on this benchmark.
+- Documentation how-to questions are the weak spot; reranking helped there (75%).
+- Error analysis showed that Flask's own `tests/` files and `docs/conf.py` often crowd out the real answer
+  (for example "parse JSON", "write tests", "configuration best practices").
+  Indexing now skips these by default (`--include-tests` to keep them); that change has not been benchmarked yet.
 
-**Limitations:** 43 questions (one question = 2.3 points), labels written by me before running the evaluation,
-latency varies between runs on a laptop. Commit-history and error-message queries are not covered yet.
+**Limitations**
+- 43 questions, so one question is about 2.3 points; labels were written by me.
+- After error analysis I corrected 2 labels (valid answers I had missed: the test client and logging questions); the table uses the corrected labels.
+- The reported index still contained Flask's `tests/` folder.
+- Latency varies between runs on a laptop CPU. Commit-history and error-message queries are not covered by the benchmark.
+
+## Roadmap
+- [x] Ingestion, AST chunking, embeddings, vector search
+- [x] BM25 + hybrid retrieval (RRF) + reranking
+- [x] Grounded LLM answers with validated citations
+- [x] FastAPI backend + web UI
+- [x] Evaluation harness with error analysis
+- [ ] Benchmark the filtered index (tests/examples excluded)
+- [ ] Incremental re-indexing of changed files
+- [ ] Docker image and hosted demo
