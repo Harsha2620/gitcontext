@@ -2,7 +2,7 @@
 
 **Ask questions about any GitHub repository.** GitContext indexes source code, docs and commit history, retrieves the best context with hybrid search (semantic + keyword) and cross-encoder reranking, then answers with an LLM that **cites its sources**.
 
-> Status: phases 1-7 done. Freshness (re-indexing) and evaluation are next.
+> Status: phases 1-8 done. Freshness (re-indexing) and evaluation are next.
 
 ## Quick start
 ```bash
@@ -56,4 +56,12 @@ Endpoints: `POST /ask`, `POST /search`, `GET /health`. Models load once at start
 - [x] LLM answers with citations
 - [x] FastAPI backend + web UI
 - [ ] Auto re-index changed files
-- [ ] Evaluation (Recall@5, latency) and results table
+- [x] Evaluation (Recall@5, MRR, latency) -> see below
+
+## Evaluation
+`python -m eval.run_eval` runs ~44 labelled questions (natural language, exact identifiers, docs)
+against every retrieval mode and writes `eval/results.md`. A result is correct when a retrieved chunk
+matches the expected function/class name or file path. Add `--answers 10` to also measure citation
+accuracy and refusal on out-of-scope questions.
+
+**Results (Flask):** _paste the table from `eval/results.md` here_

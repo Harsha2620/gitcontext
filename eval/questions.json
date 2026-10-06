@@ -1,0 +1,369 @@
+[
+ {
+  "q": "How does Flask match a URL to a view function?",
+  "type": "natural",
+  "names": [
+   "dispatch_request",
+   "match_request"
+  ]
+ },
+ {
+  "q": "How are exceptions from view functions turned into HTTP error responses?",
+  "type": "natural",
+  "names": [
+   "handle_user_exception",
+   "handle_exception",
+   "handle_http_exception"
+  ]
+ },
+ {
+  "q": "How does Flask build a response object from what a view returns?",
+  "type": "natural",
+  "names": [
+   "make_response"
+  ]
+ },
+ {
+  "q": "How does url_for generate URLs for an endpoint?",
+  "type": "natural",
+  "names": [
+   "url_for"
+  ]
+ },
+ {
+  "q": "How can configuration be loaded from a Python file or environment variable?",
+  "type": "natural",
+  "names": [
+   "from_pyfile",
+   "from_envvar",
+   "from_object",
+   "from_prefixed_env"
+  ]
+ },
+ {
+  "q": "How are blueprints registered on an application?",
+  "type": "natural",
+  "names": [
+   "register_blueprint",
+   "register"
+  ]
+ },
+ {
+  "q": "How is an application context created and pushed?",
+  "type": "natural",
+  "names": [
+   "push",
+   "app_context"
+  ]
+ },
+ {
+  "q": "How does render_template render a template with context?",
+  "type": "natural",
+  "names": [
+   "render_template",
+   "render_template_string"
+  ]
+ },
+ {
+  "q": "How is the session cookie signed and saved?",
+  "type": "natural",
+  "paths": [
+   "src/flask/sessions.py"
+  ]
+ },
+ {
+  "q": "How does Flask send a static file to the client?",
+  "type": "natural",
+  "names": [
+   "send_static_file",
+   "send_from_directory",
+   "send_file"
+  ]
+ },
+ {
+  "q": "How do I register an error handler for an HTTP status code?",
+  "type": "natural",
+  "names": [
+   "register_error_handler",
+   "errorhandler"
+  ]
+ },
+ {
+  "q": "How does the flask run command start the development server?",
+  "type": "natural",
+  "names": [
+   "run_command"
+  ],
+  "paths": [
+   "src/flask/cli.py"
+  ]
+ },
+ {
+  "q": "How does Flask parse JSON from a request body?",
+  "type": "natural",
+  "names": [
+   "get_json",
+   "on_json_loading_failed"
+  ]
+ },
+ {
+  "q": "How does jsonify build a JSON response?",
+  "type": "natural",
+  "names": [
+   "jsonify"
+  ]
+ },
+ {
+  "q": "How do before_request and after_request hooks run?",
+  "type": "natural",
+  "names": [
+   "preprocess_request",
+   "process_response",
+   "full_dispatch_request"
+  ]
+ },
+ {
+  "q": "How does the test client simulate requests?",
+  "type": "natural",
+  "paths": [
+   "src/flask/testing.py"
+  ]
+ },
+ {
+  "q": "How is the g object stored for each application context?",
+  "type": "natural",
+  "paths": [
+   "src/flask/globals.py",
+   "src/flask/ctx.py"
+  ]
+ },
+ {
+  "q": "How does Flask find the instance folder?",
+  "type": "natural",
+  "names": [
+   "auto_find_instance_path",
+   "get_root_path"
+  ]
+ },
+ {
+  "q": "How does Flask flash messages to the user?",
+  "type": "natural",
+  "names": [
+   "flash",
+   "get_flashed_messages"
+  ]
+ },
+ {
+  "q": "How does stream_with_context keep the request alive while streaming?",
+  "type": "natural",
+  "names": [
+   "stream_with_context"
+  ]
+ },
+ {
+  "q": "How does Flask abort a request with an HTTP error code?",
+  "type": "natural",
+  "names": [
+   "abort"
+  ]
+ },
+ {
+  "q": "How does redirect send the user to another URL?",
+  "type": "natural",
+  "names": [
+   "redirect"
+  ]
+ },
+ {
+  "q": "How are class-based views implemented?",
+  "type": "natural",
+  "names": [
+   "View",
+   "MethodView",
+   "as_view"
+  ],
+  "paths": [
+   "src/flask/views.py"
+  ]
+ },
+ {
+  "q": "How does the route decorator register a URL rule?",
+  "type": "natural",
+  "names": [
+   "route",
+   "add_url_rule"
+  ]
+ },
+ {
+  "q": "How do context processors inject variables into templates?",
+  "type": "natural",
+  "names": [
+   "update_template_context",
+   "context_processor"
+  ]
+ },
+ {
+  "q": "dispatch_request",
+  "type": "identifier",
+  "names": [
+   "dispatch_request"
+  ]
+ },
+ {
+  "q": "make_response",
+  "type": "identifier",
+  "names": [
+   "make_response"
+  ]
+ },
+ {
+  "q": "preprocess_request",
+  "type": "identifier",
+  "names": [
+   "preprocess_request"
+  ]
+ },
+ {
+  "q": "from_prefixed_env",
+  "type": "identifier",
+  "names": [
+   "from_prefixed_env"
+  ]
+ },
+ {
+  "q": "get_flashed_messages",
+  "type": "identifier",
+  "names": [
+   "get_flashed_messages"
+  ]
+ },
+ {
+  "q": "stream_with_context",
+  "type": "identifier",
+  "names": [
+   "stream_with_context"
+  ]
+ },
+ {
+  "q": "register_error_handler",
+  "type": "identifier",
+  "names": [
+   "register_error_handler"
+  ]
+ },
+ {
+  "q": "send_from_directory",
+  "type": "identifier",
+  "names": [
+   "send_from_directory"
+  ]
+ },
+ {
+  "q": "SecureCookieSessionInterface",
+  "type": "identifier",
+  "names": [
+   "SecureCookieSessionInterface"
+  ]
+ },
+ {
+  "q": "RequestContext",
+  "type": "identifier",
+  "names": [
+   "RequestContext"
+  ]
+ },
+ {
+  "q": "MethodView",
+  "type": "identifier",
+  "names": [
+   "MethodView"
+  ]
+ },
+ {
+  "q": "FlaskCLIRunner",
+  "type": "identifier",
+  "names": [
+   "FlaskCLIRunner"
+  ]
+ },
+ {
+  "q": "What is the application factory pattern?",
+  "type": "docs",
+  "paths": [
+   "docs/patterns/appfactories.rst",
+   "docs/tutorial/factory.rst"
+  ]
+ },
+ {
+  "q": "How do I deploy Flask with gunicorn?",
+  "type": "docs",
+  "paths": [
+   "docs/deploying/"
+  ]
+ },
+ {
+  "q": "How do I configure logging in Flask?",
+  "type": "docs",
+  "paths": [
+   "docs/logging.rst"
+  ]
+ },
+ {
+  "q": "How do I write tests for a Flask application?",
+  "type": "docs",
+  "paths": [
+   "docs/testing.rst",
+   "docs/tutorial/tests.rst"
+  ]
+ },
+ {
+  "q": "What is the request lifecycle in Flask?",
+  "type": "docs",
+  "paths": [
+   "docs/lifecycle.rst",
+   "docs/reqcontext.rst",
+   "docs/appcontext.rst"
+  ]
+ },
+ {
+  "q": "How do I organize a large app with blueprints?",
+  "type": "docs",
+  "paths": [
+   "docs/blueprints.rst"
+  ]
+ },
+ {
+  "q": "How do I handle file uploads?",
+  "type": "docs",
+  "paths": [
+   "docs/patterns/fileuploads.rst"
+  ]
+ },
+ {
+  "q": "What are the configuration best practices?",
+  "type": "docs",
+  "paths": [
+   "docs/config.rst"
+  ]
+ },
+ {
+  "q": "What is the capital of France?",
+  "type": "out_of_scope",
+  "refusal": true
+ },
+ {
+  "q": "How do I train a neural network in PyTorch?",
+  "type": "out_of_scope",
+  "refusal": true
+ },
+ {
+  "q": "What is the best pizza topping?",
+  "type": "out_of_scope",
+  "refusal": true
+ },
+ {
+  "q": "How does the Rails ActiveRecord ORM work?",
+  "type": "out_of_scope",
+  "refusal": true
+ }
+]
