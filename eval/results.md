@@ -1,21 +1,21 @@
-# Evaluation results (2026-10-06)
+# Evaluation results (2026-10-07)
 
 43 labelled questions on the indexed repo, k=5, rerank pool=15. Latency is retrieval only (no LLM), on a laptop CPU.
 
 | Mode | Recall@1 | Recall@5 | MRR | Precision@5 | p50 latency | p95 latency |
 |---|---|---|---|---|---|---|
-| vector | 70% | 91% | 0.78 | 33% | 23 ms | 35 ms |
-| bm25 | 40% | 79% | 0.55 | 25% | 1 ms | 2 ms |
-| hybrid | 63% | 88% | 0.72 | 33% | 25 ms | 34 ms |
-| rerank | 65% | 91% | 0.75 | 33% | 1251 ms | 1290 ms |
+| vector | 79% | 93% | 0.85 | 36% | 29 ms | 33 ms |
+| bm25 | 58% | 88% | 0.70 | 30% | 1 ms | 2 ms |
+| hybrid | 81% | 91% | 0.85 | 37% | 29 ms | 32 ms |
+| rerank | 70% | 88% | 0.78 | 34% | 1180 ms | 1380 ms |
 
 ## Recall@5 by question type
 
 | Type | n | vector | bm25 | hybrid | rerank |
 |---|---|---|---|---|---|
-| docs | 8 | 62% | 62% | 62% | 75% |
-| identifier | 10 | 100% | 90% | 100% | 100% |
-| natural | 25 | 96% | 80% | 92% | 92% |
+| docs | 8 | 75% | 62% | 75% | 75% |
+| identifier | 10 | 100% | 100% | 100% | 100% |
+| natural | 25 | 96% | 92% | 92% | 88% |
 
 ## Where modes disagree or all miss
 
@@ -23,17 +23,13 @@
 |---|---|---|---|---|
 | How does Flask parse JSON from a request body? | NO | NO | NO | NO |
 | How do before_request and after_request hooks run? | yes | NO | NO | NO |
-| How does the test client simulate requests? | yes | NO | yes | yes |
-| How is the g object stored for each application context? | yes | NO | yes | yes |
-| How does redirect send the user to another URL? | yes | NO | yes | yes |
-| MethodView | yes | NO | yes | yes |
-| How do I write tests for a Flask application? | NO | NO | NO | yes |
+| How does Flask abort a request with an HTTP error code? | yes | yes | yes | NO |
+| How do I write tests for a Flask application? | yes | NO | yes | yes |
 | How do I organize a large app with blueprints? | NO | NO | NO | NO |
 | What are the configuration best practices? | NO | NO | NO | NO |
 
 ## Top-3 results on `vector` misses
 
-- **How does Flask parse JSON from a request body?** -> tests/test_json.py (test_bad_request_debug_message); tests/test_testing.py (test_json_request_and_response); docs/patterns/javascript.rst (JavaScript, ``fetch``, and JSON)
-- **How do I write tests for a Flask application?** -> tests/test_basic.py (test_json_dump_dataclass); tests/test_basic.py (test_make_response); tests/test_basic.py (test_make_response_with_response_instance)
+- **How does Flask parse JSON from a request body?** -> docs/patterns/javascript.rst (JavaScript, ``fetch``, and JSON); src/flask/json/__init__.py (jsonify); src/flask/json/provider.py (DefaultJSONProvider)
 - **How do I organize a large app with blueprints?** -> src/flask/blueprints.py (Blueprint.__init__); src/flask/sansio/blueprints.py (Blueprint.register); src/flask/sansio/blueprints.py (Blueprint.app_template_global)
-- **What are the configuration best practices?** -> docs/conf.py (setup); tests/test_config.py (test_config_from_envvar); src/flask/config.py (Config.from_mapping)
+- **What are the configuration best practices?** -> src/flask/config.py (Config.from_mapping); commit:9efc1ebe (add SESSION_COOKIE_PARTITIONED config); docs/lifecycle.rst (Application Structure and Lifecycle)
