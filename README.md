@@ -25,6 +25,7 @@ flowchart LR
 - **Metadata** on every chunk: file path, lines, author, commit, last-modified date
 - **4 retrieval modes**: `vector`, `bm25`, `hybrid` (Reciprocal Rank Fusion), `rerank` (cross-encoder)
 - **Grounded answers**: numbered `[n]` citations, validated against the retrieved sources; replies "I don't know" when the sources do not contain the answer
+- **Incremental updates**: `update` re-embeds only new/changed files and removes deleted ones
 - **FastAPI backend + web UI**, CLI, tests and CI
 - **Evaluation harness** with labelled questions (Recall@k, MRR, latency, error analysis)
 
@@ -47,34 +48,43 @@ The LLM client works with any OpenAI-compatible API; configure `LLM_API_KEY`, `L
 against git. Only new and changed files are re-chunked and re-embedded, deleted files are removed and new commits are added.
 Restart the web server afterwards so it reloads the index.
 
+Tested by rewinding the local clone 25 commits: `update` detected 20 changed files and re-embedded only the affected chunks (342 chunks, 61 s);
+pulling forward again re-embedded 337 chunks in 70 s. Unchanged files are skipped.
+
 ## Evaluation
 `python -m eval.run_eval` runs 43 labelled questions (natural language, exact identifiers, docs how-to) against every retrieval mode.
 A result counts as correct when a retrieved chunk matches the expected function/class name or file path.
 
-Flask repo, k=5, retrieval only, laptop CPU, rerank pool of 15:
+Flask repo, k=5, retrieval only, laptop CPU, rerank pool of 15, index excluding `tests/`, `examples/` and `docs/conf.py`:
 
 | Mode | Recall@1 | Recall@5 | MRR | Precision@5 | p50 latency | p95 latency |
 |---|---|---|---|---|---|---|
-| **vector (default)** | 70% | **91%** | **0.78** | 33% | 23 ms | 35 ms |
-| bm25 | 40% | 79% | 0.55 | 25% | 1 ms | 2 ms |
-| hybrid | 63% | 88% | 0.72 | 33% | 25 ms | 34 ms |
-| rerank | 65% | **91%** | 0.75 | 33% | 1251 ms | 1290 ms |
+| **vector (default)** | 79% | **93%** | **0.85** | 36% | 29 ms | 33 ms |
+| bm25 | 58% | 88% | 0.70 | 30% | 1 ms | 2 ms |
+| hybrid | **81%** | 91% | **0.85** | 37% | 29 ms | 32 ms |
+| rerank | 70% | 88% | 0.78 | 34% | 1180 ms | 1380 ms |
 
 Recall@5 by question type (vector / bm25 / hybrid / rerank):
-natural (25): 96 / 80 / 92 / 92%, identifiers (10): 100 / 90 / 100 / 100%, docs how-to (8): 62 / 62 / 62 / 75%.
+natural (25): 96 / 92 / 92 / 88%, identifiers (10): 100 / 100 / 100 / 100%, docs how-to (8): 75 / 62 / 75 / 75%.
+
+**Effect of removing test and boilerplate files from the index** (same questions, same Flask snapshot; before -> after):
+
+| Mode | Recall@1 | Recall@5 | MRR |
+|---|---|---|---|
+| vector | 70% -> 79% | 91% -> 93% | 0.78 -> 0.85 |
+| bm25 | 40% -> 58% | 79% -> 88% | 0.55 -> 0.70 |
+| hybrid | 63% -> 81% | 88% -> 91% | 0.72 -> 0.85 |
+| rerank | 65% -> 70% | 91% -> 88% | 0.75 -> 0.78 |
 
 **Findings**
-- Dense retrieval matched the cross-encoder on Recall@5 and had the best MRR at over 50x lower latency, so it is the default.
-- BM25 alone is the weakest mode; hybrid did not beat dense retrieval on this benchmark.
-- Documentation how-to questions are the weak spot; reranking helped there (75%).
-- Error analysis showed that Flask's own `tests/` files and `docs/conf.py` often crowd out the real answer
-  (for example "parse JSON", "write tests", "configuration best practices").
-  Indexing now skips these by default (`--include-tests` to keep them); that change has not been benchmarked yet.
+- Error analysis showed that Flask's own `tests/` files and `docs/conf.py` crowded out real answers, so they are no longer indexed by default (`--include-tests` to keep them). Ranking quality improved in every mode (vector MRR 0.78 -> 0.85, Recall@1 70% -> 79%).
+- Dense and hybrid retrieval are now tied (MRR 0.85, ~29 ms); vector stays the default because it is simpler and equally fast.
+- The general-purpose cross-encoder reranker did not help: lower Recall@5 and MRR than vector at about 40x the latency.
+- The three questions every mode misses are docs-style how-to questions (JSON parsing, organizing a large app with blueprints, configuration best practices). The top results are related code files rather than the labelled docs pages; I did not change these labels to avoid tuning the benchmark.
 
 **Limitations**
-- 43 questions, so one question is about 2.3 points; labels were written by me.
-- After error analysis I corrected 2 labels (valid answers I had missed: the test client and logging questions); the table uses the corrected labels.
-- The reported index still contained Flask's `tests/` folder.
+- 43 questions, so one question is about 2.3 points (the Recall@5 changes above are 1 question; the Recall@1 and MRR changes are larger).
+- Labels were written by me; after the first error analysis I corrected 2 labels (valid answers I had missed).
 - Latency varies between runs on a laptop CPU. Commit-history and error-message queries are not covered by the benchmark.
 
 ## Roadmap
@@ -83,6 +93,6 @@ natural (25): 96 / 80 / 92 / 92%, identifiers (10): 100 / 90 / 100 / 100%, docs 
 - [x] Grounded LLM answers with validated citations
 - [x] FastAPI backend + web UI
 - [x] Evaluation harness with error analysis
-- [ ] Benchmark the filtered index (tests/examples excluded)
+- [x] Benchmark the filtered index (tests/examples excluded)
 - [x] Incremental re-indexing (`update`: only new/changed files are re-embedded, deleted files removed)
 - [ ] Docker image and hosted demo
