@@ -3,7 +3,8 @@ import json
 import uuid
 
 from qdrant_client import QdrantClient
-from qdrant_client.models import Distance, PointStruct, VectorParams
+from qdrant_client.models import (Distance, FieldCondition, Filter, FilterSelector,
+                                  MatchAny, PointStruct, VectorParams)
 from sentence_transformers import SentenceTransformer
 
 from app.chunking import Chunk
@@ -38,13 +39,9 @@ def close_client() -> None:
         _client_obj = None
 
 
-def build_index(chunks: list[Chunk], repo_name: str, batch: int = 64) -> None:
+def upsert_chunks(chunks: list[Chunk], repo_name: str, batch: int = 64) -> None:
+    """Embed chunks and store them (same chunk id = overwritten)."""
     client = _client()
-    if client.collection_exists(COLLECTION):
-        client.delete_collection(COLLECTION)
-    client.create_collection(
-        COLLECTION, vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.COSINE)
-    )
     model = _get_model()
     for i in range(0, len(chunks), batch):
         part = chunks[i:i + batch]
@@ -60,7 +57,24 @@ def build_index(chunks: list[Chunk], repo_name: str, batch: int = 64) -> None:
         ]
         client.upsert(COLLECTION, points)
         print(f"  indexed {min(i + batch, len(chunks))}/{len(chunks)}")
+
+
+def build_index(chunks: list[Chunk], repo_name: str, batch: int = 64) -> None:
+    client = _client()
+    if client.collection_exists(COLLECTION):
+        client.delete_collection(COLLECTION)
+    client.create_collection(
+        COLLECTION, vectors_config=VectorParams(size=EMBED_DIM, distance=Distance.COSINE)
+    )
+    upsert_chunks(chunks, repo_name, batch)
     dump_chunks()  # save a copy for keyword search
+
+
+def delete_paths(paths: list[str]) -> None:
+    """Remove every chunk that belongs to the given file paths."""
+    if paths:
+        _client().delete(COLLECTION, points_selector=FilterSelector(
+            filter=Filter(must=[FieldCondition(key="path", match=MatchAny(any=paths))])))
 
 
 def dump_chunks() -> list[dict]:

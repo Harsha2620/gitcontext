@@ -42,6 +42,11 @@ pytest
 ```
 The LLM client works with any OpenAI-compatible API; configure `LLM_API_KEY`, `LLM_BASE_URL` and `LLM_MODEL` in `.env`.
 
+## Keeping the index fresh
+`python -m app.cli update <repo-url>` pulls the repo and compares the last-commit hash stored with every indexed file
+against git. Only new and changed files are re-chunked and re-embedded, deleted files are removed and new commits are added.
+Restart the web server afterwards so it reloads the index.
+
 ## Evaluation
 `python -m eval.run_eval` runs 43 labelled questions (natural language, exact identifiers, docs how-to) against every retrieval mode.
 A result counts as correct when a retrieved chunk matches the expected function/class name or file path.
@@ -79,5 +84,5 @@ natural (25): 96 / 80 / 92 / 92%, identifiers (10): 100 / 90 / 100 / 100%, docs 
 - [x] FastAPI backend + web UI
 - [x] Evaluation harness with error analysis
 - [ ] Benchmark the filtered index (tests/examples excluded)
-- [ ] Incremental re-indexing of changed files
+- [x] Incremental re-indexing (`update`: only new/changed files are re-embedded, deleted files removed)
 - [ ] Docker image and hosted demo

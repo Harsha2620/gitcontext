@@ -45,12 +45,13 @@ def _git(repo: Path, *args: str) -> str:
     return result.stdout.strip()
 
 
-def clone_repo(url: str) -> Path:
+def clone_repo(url: str, pull: bool = True) -> Path:
     """Clone the repo (or update it if we already have it)."""
     name = url.rstrip("/").removesuffix(".git").split("/")[-1]
     dest = REPOS_DIR / name
     if dest.exists():
-        subprocess.run(["git", "-C", str(dest), "pull"], check=True)
+        if pull:
+            subprocess.run(["git", "-C", str(dest), "pull"], check=True)
     else:
         REPOS_DIR.mkdir(parents=True, exist_ok=True)
         subprocess.run(["git", "clone", url, str(dest)], check=True)

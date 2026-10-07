@@ -3,6 +3,7 @@
   python -m app.cli index https://github.com/pallets/flask
   python -m app.cli search "how does routing work?"
   python -m app.cli search "dispatch_request" --mode bm25
+  python -m app.cli update https://github.com/pallets/flask
   python -m app.cli ask "How does Flask match a URL to a view function?"
 """
 import argparse
@@ -26,6 +27,37 @@ def cmd_index(args) -> None:
     print(f"Total chunks: {len(chunks)}. Creating embeddings...")
     build_index(chunks, repo_name=repo.name)
     print('Done! Now try: python -m app.cli ask "your question"')
+
+
+def cmd_update(args) -> None:
+    """Re-index only what changed since the index was built."""
+    from app.indexing import delete_paths, dump_chunks, upsert_chunks
+    from app.update import indexed_files, plan_update
+    start = time.perf_counter()
+    try:
+        indexed = dump_chunks()
+    except Exception:
+        print("No index found. Run first: python -m app.cli index <repo-url>")
+        sys.exit(1)
+    files_idx, commits_idx = indexed_files(indexed)
+    print("Checking the repo for changes...")
+    repo = clone_repo(args.url, pull=not args.no_pull)
+    current = {f.path: f for f in iter_source_files(repo)}
+    plan = plan_update(files_idx, {p: f.commit for p, f in current.items()})
+    new_commits = [c for c in get_commits(repo, args.max_commits) if c.sha not in commits_idx]
+    todo = plan["new"] + plan["changed"]
+    print(f"New files: {len(plan['new'])}, changed: {len(plan['changed'])}, "
+          f"removed: {len(plan['removed'])}, new commits: {len(new_commits)}")
+    if not (todo or plan["removed"] or new_commits):
+        print("Index is already up to date.")
+        return
+    new_chunks = [ch for p in todo for ch in chunk_source_file(current[p])]
+    new_chunks += [chunk_commit(c) for c in new_commits]
+    delete_paths(plan["removed"] + plan["changed"])
+    upsert_chunks(new_chunks, repo.name)
+    dump_chunks()
+    print(f"Updated in {time.perf_counter() - start:.1f}s: re-embedded {len(new_chunks)} chunks "
+          f"(a full re-index re-embeds all of them). Restart the web server to reload the index.")
 
 
 def cmd_search(args) -> None:
@@ -71,6 +103,11 @@ def main() -> None:
     a.add_argument("--max-commits", type=int, default=300)
     a.add_argument("--include-tests", action="store_true", help="also index tests/ and examples/")
     a.set_defaults(func=cmd_index)
+    u = sub.add_parser("update")
+    u.add_argument("url")
+    u.add_argument("--max-commits", type=int, default=300)
+    u.add_argument("--no-pull", action="store_true", help="compare with the local clone without git pull")
+    u.set_defaults(func=cmd_update)
     modes = ["vector", "bm25", "hybrid", "rerank"]
     b = sub.add_parser("search")
     b.add_argument("question")
