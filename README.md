@@ -1,5 +1,5 @@
 # GitContext
-
+![GitContext demo](demo.png)
 **Ask questions about any GitHub repository and get answers that cite their sources.**
 GitContext indexes source code, docs and commit history, retrieves the most relevant pieces with semantic search
 (optionally hybrid BM25 + cross-encoder reranking), and answers with an LLM that may only use the retrieved sources.
