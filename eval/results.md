@@ -1,13 +1,13 @@
-# Evaluation results (2026-10-07)
+# Evaluation results (2026-10-08)
 
 43 labelled questions on the indexed repo, k=5, rerank pool=15. Latency is retrieval only (no LLM), on a laptop CPU.
 
 | Mode | Recall@1 | Recall@5 | MRR | Precision@5 | p50 latency | p95 latency |
 |---|---|---|---|---|---|---|
-| vector | 79% | 93% | 0.85 | 36% | 29 ms | 33 ms |
-| bm25 | 58% | 88% | 0.70 | 30% | 1 ms | 2 ms |
-| hybrid | 81% | 91% | 0.85 | 37% | 29 ms | 32 ms |
-| rerank | 70% | 88% | 0.78 | 34% | 1180 ms | 1380 ms |
+| vector | 79% | 93% | 0.85 | 36% | 28 ms | 33 ms |
+| bm25 | 58% | 88% | 0.71 | 30% | 1 ms | 2 ms |
+| hybrid | 81% | 91% | 0.85 | 37% | 29 ms | 31 ms |
+| rerank | 70% | 88% | 0.78 | 34% | 1187 ms | 2290 ms |
 
 ## Recall@5 by question type
 
@@ -32,4 +32,6 @@
 
 - **How does Flask parse JSON from a request body?** -> docs/patterns/javascript.rst (JavaScript, ``fetch``, and JSON); src/flask/json/__init__.py (jsonify); src/flask/json/provider.py (DefaultJSONProvider)
 - **How do I organize a large app with blueprints?** -> src/flask/blueprints.py (Blueprint.__init__); src/flask/sansio/blueprints.py (Blueprint.register); src/flask/sansio/blueprints.py (Blueprint.app_template_global)
-- **What are the configuration best practices?** -> src/flask/config.py (Config.from_mapping); commit:9efc1ebe (add SESSION_COOKIE_PARTITIONED config); docs/lifecycle.rst (Application Structure and Lifecycle)
+- **What are the configuration best practices?** -> src/flask/config.py (Config.from_mapping); commit:9efc1ebe (add SESSION_COOKIE_PARTITIONED config); commit:0e59442f (Use per-release URLs in GH env UI when publishing to the PyPI)
+
+**Answers** (10 questions): citation accuracy 90% (cited a correct source, no invalid citations); refused 100% of 4 out-of-scope questions.
