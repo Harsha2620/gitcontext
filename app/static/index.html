@@ -42,5 +42,6 @@ async function ask(){
   }catch(e){$('out').innerHTML='<div class="card err">'+esc(e.message)+'</div>';}
   $('go').disabled=false;
 }
+fetch('/health').then(r=>r.json()).then(d=>{if(d.rerank===false){const o=document.querySelector('#mode option[value=rerank]');if(o)o.remove();}}).catch(()=>{});
 $('go').onclick=ask; $('q').onkeydown=e=>{if(e.key==='Enter')ask()};
 </script></main></body></html>

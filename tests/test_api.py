@@ -22,3 +22,9 @@ def test_ask_returns_answer_and_marks_cited_sources(monkeypatch):
 
 def test_short_question_is_rejected():
     assert TestClient(api.app).post("/ask", json={"question": "hi"}).status_code == 422
+
+
+def test_rerank_is_refused_when_disabled(monkeypatch):
+    monkeypatch.setattr(api, "DISABLE_RERANK", True)
+    r = TestClient(api.app).post("/ask", json={"question": "how does it work", "mode": "rerank"})
+    assert r.status_code == 400

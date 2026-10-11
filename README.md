@@ -53,6 +53,12 @@ Restart the web server afterwards so it reloads the index.
 Tested by rewinding the local clone 25 commits: `update` detected 20 changed files and re-embedded only the affected chunks (342 chunks, 61 s);
 pulling forward again re-embedded 337 chunks in 70 s. Unchanged files are skipped.
 
+## Hosted demo (free tier)
+`render.yaml` deploys the app on Render's free web service (512 MB RAM). To fit that limit, the hosted build uses an ONNX build of the
+same embedding model (`fastembed`, `EMBED_BACKEND=fastembed`) instead of PyTorch, reranking is disabled, and requests are rate limited.
+The Flask index is built during deployment. The benchmark numbers below were measured locally with PyTorch embeddings.
+Free instances sleep after 15 minutes without traffic, so the first request can take about a minute.
+
 ## Evaluation
 `python -m eval.run_eval` runs 43 labelled questions (natural language, exact identifiers, docs how-to) against every retrieval mode.
 A result counts as correct when a retrieved chunk matches the expected function/class name or file path.

@@ -1,11 +1,11 @@
 """Phase 4: turn chunks into embeddings and store/search them in Qdrant."""
 import json
+import os
 import uuid
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import (Distance, FieldCondition, Filter, FilterSelector,
                                   MatchAny, PointStruct, VectorParams)
-from sentence_transformers import SentenceTransformer
 
 from app.chunking import Chunk
 from app.config import (CHUNKS_PATH, COLLECTION, EMBED_DIM, EMBED_MODEL,
@@ -14,11 +14,18 @@ from app.config import (CHUNKS_PATH, COLLECTION, EMBED_DIM, EMBED_MODEL,
 _model = None
 
 
-def _get_model() -> SentenceTransformer:
+def _encode(texts: list[str]) -> list[list[float]]:
+    """Embed texts. EMBED_BACKEND=fastembed uses a small ONNX build of the same model (no PyTorch, low RAM)."""
     global _model
+    if os.getenv("EMBED_BACKEND") == "fastembed":
+        if _model is None:
+            from fastembed import TextEmbedding
+            _model = TextEmbedding(EMBED_MODEL, cache_dir=os.getenv("FASTEMBED_CACHE_PATH", ".cache/fastembed"))
+        return [v.tolist() for v in _model.embed(texts, batch_size=16)]
     if _model is None:
+        from sentence_transformers import SentenceTransformer
         _model = SentenceTransformer(EMBED_MODEL)  # downloads once (~130 MB)
-    return _model
+    return [v.tolist() for v in _model.encode(texts, normalize_embeddings=True)]
 
 
 _client_obj = None
@@ -42,15 +49,14 @@ def close_client() -> None:
 def upsert_chunks(chunks: list[Chunk], repo_name: str, batch: int = 64) -> None:
     """Embed chunks and store them (same chunk id = overwritten)."""
     client = _client()
-    model = _get_model()
     for i in range(0, len(chunks), batch):
         part = chunks[i:i + batch]
-        vectors = model.encode([c.text for c in part], normalize_embeddings=True)
+        vectors = _encode([c.text for c in part])
         points = [
             PointStruct(
                 id=str(uuid.uuid5(uuid.NAMESPACE_URL,
                                   f"{c.metadata['path']}:{c.metadata['name']}:{c.metadata['start_line']}")),
-                vector=v.tolist(),
+                vector=v,
                 payload={**c.metadata, "repo": repo_name, "text": c.text},
             )
             for c, v in zip(part, vectors)
@@ -96,7 +102,7 @@ def dump_chunks() -> list[dict]:
 def search(question: str, k: int = 5) -> list[dict]:
     """Vector (meaning-based) search."""
     client = _client()
-    vec = _get_model().encode(QUERY_PREFIX + question, normalize_embeddings=True)
-    hits = client.query_points(COLLECTION, query=vec.tolist(), limit=k).points
+    vec = _encode([QUERY_PREFIX + question])[0]
+    hits = client.query_points(COLLECTION, query=vec, limit=k).points
     results = [{"id": str(h.id), "score": h.score, **h.payload} for h in hits]
     return results
